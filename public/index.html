@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Search</title>
+    <link rel="stylesheet" href="./styles.css">
+    <style>
+        #tableA, #tableB {
+            max-height: 50vh; /* 设置为视口的50% */
+            overflow-y: auto; /* 当内容超出时，允许垂直滚动 */
+        }
+    </style>
+    
+</head>
+
+<body>
+    <form id="searchForm">
+        <select id="apiType" onchange="toggleTableVisibility()">
+            <option value="trademarkSearch">a</option>
+            <option value="trademarkAvailable">b</option>
+        </select>
+
+        <input type="text" id="query" placeholder="Enter query">
+        <button type="submit">Search</button>
+    </form>
+
+    <!-- Table for Option A -->
+    <div class="tableContainer">
+        <table id="tableA" style="display: none;">
+            <thead>
+                <tr>
+                    <th>Keyword</th>
+                    <th>Registration Number</th>
+                    <th>Status</th>
+                    <th>Filing Date</th>
+                    <th>Description</th>
+                    <th>Owner</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Rows will be appended here for option A -->
+            </tbody>
+        </table>
+    </div>
+
+
+    <!-- Table for Option B -->
+    <div class="tableContainer">
+        <table id="tableB" style="display: none;">
+            <thead>
+                <tr>
+                    <th>Keyword</th>
+                    <th>Available</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Rows will be appended here for option B -->
+            </tbody>
+        </table>
+    </div>
+   
+
+    <script>
+        function toggleTableVisibility() {
+            const apiType = document.getElementById('apiType').value;
+            if (apiType === "trademarkSearch") {
+                document.getElementById('tableA').style.display = '';
+                document.getElementById('tableB').style.display = 'none';
+            } else {
+                document.getElementById('tableA').style.display = 'none';
+                document.getElementById('tableB').style.display = '';
+            }
+        }
+
+        document.getElementById('searchForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const apiType = document.getElementById('apiType').value;
+            const query = document.getElementById('query').value;
+
+            try {
+                const response = await fetch('/api/search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ type: apiType, query: query })
+                });
+
+                const data = await response.json();
+
+                if (apiType === "trademarkSearch") {
+                    const tableBodyA = document.getElementById("tableA").querySelector("tbody");
+                    tableBodyA.innerHTML = ''; // Clear existing rows
+                    data.items.forEach(item => {
+                        const row = document.createElement("tr");
+                        ["keyword", "registration_number", "status_label", "filing_date", "description", "owners"].forEach(key => {
+                            const cell = document.createElement("td");
+                            if (key === "owners" && item[key] && item[key].length > 0) {
+                                cell.textContent = item[key][0].name;
+                            } else {
+                                cell.textContent = item[key] || '';  // This will default to an empty string if item[key] is undefined
+                            }
+
+                            row.appendChild(cell);
+                        });
+                        tableBodyA.appendChild(row);
+                    });
+                } else if (apiType === "trademarkAvailable") {
+                    const tableBodyB = document.getElementById("tableB").querySelector("tbody");
+                    tableBodyB.innerHTML = ''; // Clear existing rows
+                    data.forEach(item => {
+                        const row = document.createElement("tr");
+                        ["keyword", "available"].forEach(key => {
+                            const cell = document.createElement("td");
+                            cell.textContent = item[key];
+                            row.appendChild(cell);
+                        });
+                        tableBodyB.appendChild(row);
+                    });
+                }
+            } catch (error) {
+                console.error('There was an error:', error);
+            }
+        });
+
+        // Call the function on page load to set the initial visibility state
+        toggleTableVisibility();
+
+    </script>
+</body>
+
+</html>
